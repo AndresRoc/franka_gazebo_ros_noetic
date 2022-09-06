@@ -1,0 +1,48 @@
+<launch>
+
+	<!-- Load the robot model onto the ROS parameter server -->
+	<param name="robot_description" command="xacro '$(find franka_gazebo)/robots/panda_arm_hand.urdf.xacro'"/>
+
+	<!-- GAZEBO arguments -->
+	<arg name="paused" default="false"/>
+	<arg name="use_sim_time" default="true"/>
+	<arg name="gui" default="true"/>
+	<arg name="headless" default="false"/>
+	<arg name="debug" default="false"/>
+
+	<!--launch GAZEBO with own world configuration -->
+	<include file="$(find gazebo_ros)/launch/empty_world.launch">
+		<arg name="debug" value="$(arg debug)"/>
+		<arg name="gui" value="$(arg gui)"/>
+		<arg name="paused" value="$(arg paused)"/>
+		<arg name="use_sim_time" value="$(arg use_sim_time)"/>
+		<arg name="headless" value="$(arg headless)"/>
+	</include>
+
+	<!-- Launch Gazebo and spawn the robot model -->
+	<node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -model panda"/>
+
+	<!-- Load the controller configurations and spawn the controllers with controller_manager -->
+	<rosparam command="load" file="$(find franka_gazebo)/config/joint_states.yaml" ns="franka"/>
+	<rosparam command="load" file="$(find franka_gazebo)/config/joint_commands.yaml" ns="franka"/>
+	<rosparam command="load" file="$(find franka_gazebo)/config/gripper_commands.yaml" ns="franka"/>
+	<rosparam command="load" file="$(find franka_gazebo)/config/default.yaml"/>
+
+	<node name="franka_controller_spawner" pkg="controller_manager" type="spawner" args=
+		"franka/joint_state_controller
+		franka/joint1_position_controller
+		franka/joint2_position_controller
+		franka/joint3_position_controller
+		franka/joint4_position_controller
+		franka/joint5_position_controller
+		franka/joint6_position_controller
+		franka/joint7_position_controller
+		franka/gripper_position_controller"/>
+
+	<!-- <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen" /> -->
+
+	<node pkg="robot_state_publisher" type="robot_state_publisher" name="rob_st_pub"/> 
+
+	<node pkg="franka_gazebo" type="gripper_publisher.py" name="gripper_publisher"/>
+	<node pkg="franka_gazebo" type="example_joint_publisher.py" name="example_joint_publisher" output="screen"/>
+</launch>
